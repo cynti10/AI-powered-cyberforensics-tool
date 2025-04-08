@@ -1,0 +1,6 @@
+joblib
+scikit-learn
+yara-python
+python-magic
+PyYAML
+streamlit

@@ -1,0 +1,11 @@
+Features:
+  entropy: 5.44
+  file_size: 147
+  num_strings: 2
+File: test_sample.exe
+Hashes:
+  magic: ASCII text, with CRLF line terminators
+  md5: 2609a398cd5522861038660928d29ce1
+  sha256: 3f5009641b1f5b1c72e0706f45ee99c920384762d5b39fe70532e866fb4e9c87
+Prediction: 'Malware (confidence: 80.00%)'
+YARA Matches: []

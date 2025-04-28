@@ -1,0 +1,7 @@
+anomalies: []
+events:
+  admin_actions: 1
+  failed_logins: 0
+  total_logon_events: 6
+file: data\samples\windows_security_event.log
+log_type: windows

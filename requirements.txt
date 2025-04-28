@@ -1,6 +1,13 @@
 joblib
-scikit-learn
+scikit-learn>=0.24.0
 yara-python
-python-magic
 PyYAML
 streamlit
+pandas
+numpy
+matplotlib
+uuid
+# Windows-specific:
+python-magic-bin==0.4.14; platform_system == "Windows"
+# Unix/Linux-specific:
+python-magic; platform_system != "Windows"

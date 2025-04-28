@@ -40,3 +40,30 @@ def extract_features(filepath):
     except Exception as e:
         print(f"[!] Error extracting features: {e}")
         return {}
+
+
+def extract_advanced_features(filepath):
+    """Extract advanced features including suspicious API and term detection"""
+    features = extract_features(filepath)
+    
+    try:
+        # Add string-based features
+        with open(filepath, 'rb') as f:
+            data = f.read()
+        
+        strings = extract_strings(data)
+        suspicious_apis = ['virtualalloc', 'writeprocessmemory', 'createprocess', 'loadlibrary']
+        suspicious_terms = ['rootkit', 'payload', 'exfiltration', 'c2:', 'backdoor']
+        
+        # Count suspicious strings
+        api_matches = sum(1 for s in strings if any(api.lower() in str(s).lower() for api in suspicious_apis))
+        term_matches = sum(1 for s in strings if any(term.lower() in str(s).lower() for term in suspicious_terms))
+        
+        # Add to features
+        features['suspicious_api_count'] = api_matches
+        features['suspicious_term_count'] = term_matches
+        
+        return features
+    except Exception as e:
+        print(f"[!] Error extracting advanced features: {e}")
+        return features

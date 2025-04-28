@@ -1,0 +1,18 @@
+# Create a simulated memory dump fragment with interesting strings
+$memoryDumpContent = @"
+�������Windows System32��������
+PROCESS_NAME: explorer.exe PID: 2344
+PROCESS_NAME: svchost.exe PID: 892
+PROCESS_NAME: lsass.exe PID: 652
+PROCESS_NAME: mimikatz.exe PID: 4288
+COMMAND_LINE: "C:\Users\Admin\Downloads\mimikatz.exe" "privilege::debug" "sekurlsa::logonpasswords" "exit"
+ESTABLISHED CONNECTIONS:
+192.168.1.5:49223 -> 185.192.69.45:443
+127.0.0.1:3306 -> 127.0.0.1:49241
+RUNNING_MODULES:
+C:\Windows\System32\ntdll.dll
+C:\Windows\System32\kernel32.dll
+C:\Program Files\Suspicious_Unsigned_Driver.sys
+"@
+
+Set-Content -Path "memory_dump_sample.bin" -Value $memoryDumpContent -Encoding Ascii

@@ -1,0 +1,14 @@
+# Create a simulated packet capture text representation
+$packetCaptureContent = @"
+20:15:32.472851 IP 192.168.1.105.52242 > 185.142.236.34.443: TCP 64 [PSH, ACK]
+20:15:32.472851 IP 192.168.1.105.52242 > 185.142.236.34.443: TLSv1.2 Application Data
+20:15:32.624729 IP 185.142.236.34.443 > 192.168.1.105.52242: TCP 60 [ACK]
+20:15:32.675134 IP 185.142.236.34.443 > 192.168.1.105.52242: TLSv1.2 Application Data
+20:15:32.675233 IP 192.168.1.105.52242 > 185.142.236.34.443: TCP 60 [ACK]
+20:15:32.681042 IP 192.168.1.105.52242 > 8.8.8.8.53: UDP 33
+20:15:32.699240 IP 8.8.8.8.53 > 192.168.1.105.52242: UDP 49
+20:15:32.699343 IP 192.168.1.105.52243 > malicious-domain.example.139: TCP 60 [SYN]
+20:15:32.815294 IP malicious-domain.example.139 > 192.168.1.105.52243: TCP 60 [SYN, ACK]
+"@
+
+Set-Content -Path "suspicious_network.pcap.txt" -Value $packetCaptureContent -Encoding Ascii

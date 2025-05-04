@@ -84,3 +84,254 @@ with tab1:
                     st.warning(f"Suspicious API References: {adv_features.get('suspicious_api_count', 0)}")
                 if adv_features.get('suspicious_term_count', 0) > 0:
                     st.warning(f"Suspicious Terms: {adv_features.get('suspicious_term_count', 0)}")
+
+with tab2:
+    st.header("Log Analysis")
+    uploaded_log = st.file_uploader("Upload a log file for analysis", type=["log", "txt", "xml"], key="log_uploader")
+    
+    if uploaded_log is not None:
+        # Save the uploaded log temporarily
+        temp_log_path = os.path.join("temp", uploaded_log.name)
+        os.makedirs("temp", exist_ok=True)
+        
+        with open(temp_log_path, "wb") as f:
+            f.write(uploaded_log.getbuffer())
+        
+        # Log type selection
+        log_type = st.selectbox(
+            "Select log type", 
+            ["windows", "apache", "ssh", "generic"]
+        )
+        
+        if st.button("Analyze Log"):
+            with st.spinner("Analyzing log file..."):
+                try:
+                    # Import log parser if not already imported
+                    from engine.log_parser import parse_log_events, detect_log_anomalies
+                    
+                    # Read log content
+                    with open(temp_log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                    
+                    # Parse logs
+                    events = parse_log_events(content, log_type)
+                    
+                    # Detect anomalies
+                    anomalies = detect_log_anomalies(events)
+                    
+                    # Display results
+                    st.subheader("Log Analysis Results")
+                    
+                    # Show log statistics
+                    st.write("### Log Statistics")
+                    for key, value in events.items():
+                        st.write(f"**{key}:** {value}")
+                    
+                    # Show anomalies
+                    st.write("### Detected Anomalies")
+                    if anomalies:
+                        for anomaly in anomalies:
+                            st.error(f"- {anomaly}")
+                    else:
+                        st.success("No anomalies detected")
+                        
+                    # Show sample of raw log
+                    st.write("### Log Preview")
+                    lines = content.split('\n')
+                    preview = '\n'.join(lines[:10]) + "\n..."
+                    st.code(preview)
+                    
+                except Exception as e:
+                    st.error(f"Error analyzing log: {e}")
+
+with tab3:
+    st.header("Memory Analysis")
+    uploaded_memory = st.file_uploader("Upload a memory dump file", type=["dmp", "raw", "bin", "mem", "txt"], key="memory_uploader")
+    
+    if uploaded_memory is not None:
+        # Save the uploaded memory dump temporarily
+        temp_mem_path = os.path.join("temp", uploaded_memory.name)
+        os.makedirs("temp", exist_ok=True)
+        
+        with open(temp_mem_path, "wb") as f:
+            f.write(uploaded_memory.getbuffer())
+        
+        if st.button("Analyze Memory Dump"):
+            with st.spinner("Analyzing memory dump..."):
+                try:
+                    # Import memory analyzer if not already imported
+                    from engine.memory_analyzer import analyze_memory_dump
+                    
+                    # Analyze memory dump
+                    results = analyze_memory_dump(temp_mem_path)
+                    
+                    if "error" in results:
+                        st.error(f"Error in analysis: {results['error']}")
+                    else:
+                        # Display results in tabs
+                        mem_tab1, mem_tab2, mem_tab3 = st.tabs(["Processes", "Network Connections", "Suspicious Activity"])
+                        
+                        # Processes tab
+                        with mem_tab1:
+                            st.subheader(f"Processes ({results['process_count']})")
+                            if results['processes']:
+                                process_df = pd.DataFrame(results['processes'])
+                                st.dataframe(process_df)
+                            else:
+                                st.write("No processes found in memory dump")
+                        
+                        # Network connections tab
+                        with mem_tab2:
+                            st.subheader(f"Network Connections ({results['connection_count']})")
+                            if results['network_connections']:
+                                conn_df = pd.DataFrame(results['network_connections'])
+                                st.dataframe(conn_df)
+                            else:
+                                st.write("No network connections found in memory dump")
+                        
+                        # Suspicious activity tab
+                        with mem_tab3:
+                            st.subheader("Suspicious Processes")
+                            if results['suspicious_processes']:
+                                for proc in results['suspicious_processes']:
+                                    st.error(f"**{proc['process']}** (PID: {proc['pid']}): {proc['reason']}")
+                            else:
+                                st.success("No suspicious processes detected")
+                            
+                except Exception as e:
+                    st.error(f"Error analyzing memory dump: {e}")
+
+with tab4:
+    st.header("Timeline Analysis")
+    st.write("Create a chronological timeline by adding multiple evidence sources")
+    
+    # Create a container for file upload controls
+    with st.container():
+        st.subheader("Add Evidence Sources")
+        
+        col1, col2, col3 = st.columns([2, 1, 1])
+        
+        with col1:
+            timeline_file = st.file_uploader("Upload evidence file", key="timeline_uploader")
+        
+        with col2:
+            source_type = st.selectbox("Source type", ["log", "memory", "file"])
+        
+        with col3:
+            if source_type == "log":
+                subtype = st.selectbox("Log type", ["windows", "apache", "ssh", "generic"])
+            else:
+                subtype = "N/A"
+        
+        # Session state to store timeline sources
+        if 'timeline_sources' not in st.session_state:
+            st.session_state.timeline_sources = []
+        
+        # Button to add source
+        if st.button("Add to Timeline"):
+            if timeline_file:
+                temp_path = os.path.join("temp", timeline_file.name)
+                os.makedirs("temp", exist_ok=True)
+                
+                with open(temp_path, "wb") as f:
+                    f.write(timeline_file.getbuffer())
+                
+                # Add to sources list
+                source = {
+                    "path": temp_path,
+                    "type": source_type,
+                    "description": timeline_file.name
+                }
+                
+                if source_type == "log":
+                    source["log_type"] = subtype
+                
+                st.session_state.timeline_sources.append(source)
+                st.success(f"Added {timeline_file.name} to timeline sources")
+    
+    # Display current sources
+    if st.session_state.timeline_sources:
+        st.subheader("Current Sources")
+        for i, source in enumerate(st.session_state.timeline_sources):
+            st.write(f"{i+1}. **{source['description']}** (Type: {source['type']})")
+        
+        # Clear button
+        if st.button("Clear All Sources"):
+            st.session_state.timeline_sources = []
+            st.info("Timeline sources cleared")
+        
+        # Generate timeline button
+        if st.button("Generate Timeline"):
+            with st.spinner("Generating timeline..."):
+                try:
+                    # Import timeline analyzer
+                    from engine.timeline_analyzer import create_event_timeline, detect_timeline_anomalies
+                    
+                    # Create timeline
+                    timeline_df = create_event_timeline(st.session_state.timeline_sources)
+                    
+                    # Detect anomalies
+                    anomalies = detect_timeline_anomalies(timeline_df)
+                    
+                    # Display timeline
+                    st.subheader(f"Event Timeline ({len(timeline_df)} events)")
+                    
+                    if not timeline_df.empty:
+                        # Sort by timestamp
+                        timeline_df = timeline_df.sort_values('timestamp')
+                        
+                        # Display as dataframe
+                        st.dataframe(timeline_df)
+                        
+                        # Create visualization
+                        st.subheader("Timeline Visualization")
+                        
+                        try:
+                            # Convert to datetime if not already
+                            if not pd.api.types.is_datetime64_dtype(timeline_df['timestamp']):
+                                timeline_df['timestamp'] = pd.to_datetime(timeline_df['timestamp'], errors='coerce')
+                            
+                            # Ensure event_type exists, use source if not
+                            if 'event_type' not in timeline_df.columns:
+                                timeline_df['event_type'] = timeline_df['source']
+                            
+                            # Group by timeframe - use any column that definitely exists
+                            column_to_count = 'event_type' if 'event_type' in timeline_df.columns else 'source'
+                            timeline_counts = timeline_df.resample('H', on='timestamp').count()[column_to_count]
+                            
+                            # Plot
+                            fig, ax = plt.subplots(figsize=(10, 5))
+                            timeline_counts.plot(kind='bar', ax=ax)
+                            plt.title('Events Over Time')
+                            plt.xlabel('Time')
+                            plt.ylabel('Number of Events')
+                            st.pyplot(fig)
+                        except Exception as e:
+                            st.error(f"Error in timeline visualization: {str(e)}")
+                            st.write("Displaying raw timeline data instead:")
+                            st.dataframe(timeline_df)
+                        
+                        # Display anomalies
+                        st.subheader("Detected Anomalies")
+                        if anomalies:
+                            for anomaly in anomalies:
+                                st.error(f"**{anomaly['type']}** at {anomaly['timestamp']}: {anomaly.get('description', '')}")
+                        else:
+                            st.success("No anomalies detected in timeline")
+                        
+                        # Export options
+                        export_format = st.selectbox("Export format", ["csv", "json"])
+                        if st.button("Export Timeline"):
+                            # Create export path
+                            export_path = os.path.join("temp", f"timeline_export.{export_format}")
+                            
+                            from engine.timeline_analyzer import export_timeline
+                            if export_timeline(timeline_df, export_path, format=export_format):
+                                st.success(f"Timeline exported to {export_path}")
+                    else:
+                        st.warning("No events found in the timeline")
+                    
+                except Exception as e:
+                    st.error(f"Error generating timeline: {e}")
+    else:
+        st.info("Add evidence sources to generate a timeline")

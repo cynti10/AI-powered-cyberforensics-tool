@@ -23,54 +23,133 @@ def extract_timestamps(content, source_type="file"):
     return all_timestamps
 
 def create_event_timeline(sources):
-    """Create a timeline of events from multiple sources
-    
-    Args:
-        sources: List of dicts with {path, type, description}
-    
-    Returns:
-        DataFrame with timeline events
-    """
-    events = []
+    """Create a timeline of events from multiple sources"""
+    all_events = []
     
     for source in sources:
+        source_path = source["path"]
+        source_type = source["type"]
+        source_description = source.get("description", "Unknown")
+        
         try:
-            if source["type"] == "file":
-                with open(source["path"], "r") as f:
-                    content = f.read()
-            elif source["type"] == "log":
-                with open(source["path"], "r") as f:
-                    content = f.read()
-            else:
-                continue
-                
-            timestamps = extract_timestamps(content, source["type"])
+            with open(source_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
             
-            for ts in timestamps:
-                # Extract context (20 chars before and after timestamp)
-                pos = content.find(ts)
-                start = max(0, pos - 20)
-                end = min(len(content), pos + len(ts) + 20)
-                context = content[start:end]
-                
-                events.append({
-                    "timestamp": ts,
-                    "source": source["path"],
-                    "source_type": source["type"],
-                    "description": source.get("description", ""),
-                    "context": context
-                })
-                
+            # Extract timestamps based on source type
+            if source_type == "log":
+                log_type = source.get("log_type", "generic")
+                events = extract_log_events(content, log_type, source_description)
+            elif source_type == "memory":
+                events = extract_memory_events(content, source_description)
+            else:
+                # Generic timestamp extraction
+                timestamps = extract_timestamps(content)
+                events = [{"timestamp": ts, 
+                           "source": source_description, 
+                           "event_type": "timestamp", 
+                           "details": "Timestamp found in file"} for ts in timestamps]
+            
+            all_events.extend(events)
         except Exception as e:
-            print(f"[!] Error processing {source['path']}: {e}")
+            print(f"[!] Error processing {source_path}: {e}")
     
-    # Convert to DataFrame and sort by timestamp
-    if events:
-        df = pd.DataFrame(events)
-        df.sort_values("timestamp", inplace=True)
-        return df
+    # Create DataFrame and ensure all required columns exist
+    if all_events:
+        timeline_df = pd.DataFrame(all_events)
+        
+        # Make sure all required columns exist
+        if 'event_type' not in timeline_df.columns:
+            timeline_df['event_type'] = 'unknown'
+            
+        # Convert timestamp to datetime if it's not already
+        if 'timestamp' in timeline_df.columns and not pd.api.types.is_datetime64_dtype(timeline_df['timestamp']):
+            timeline_df['timestamp'] = pd.to_datetime(timeline_df['timestamp'], errors='coerce')
+        
+        return timeline_df
     else:
-        return pd.DataFrame(columns=["timestamp", "source", "source_type", "description", "context"])
+        # Return empty DataFrame with expected columns
+        return pd.DataFrame(columns=['timestamp', 'source', 'event_type', 'details'])
+
+def extract_log_events(content, log_type, source_description):
+    """Extract events from log files"""
+    events = []
+    
+    # Extract timestamps based on log type
+    if log_type == "windows":
+        # Extract Windows event log timestamps
+        event_matches = re.finditer(r'Time: (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\n.*?Event ID: (\d+)\n.*?Type: ([^\n]+)', 
+                                   content, re.DOTALL)
+        for match in event_matches:
+            timestamp, event_id, event_type = match.groups()
+            event_text = match.group(0)
+            events.append({
+                "timestamp": timestamp,
+                "source": source_description,
+                "event_type": f"Windows-{event_id}",
+                "details": event_text[:200] + "..." if len(event_text) > 200 else event_text
+            })
+    
+    elif log_type == "apache":
+        # Extract Apache log timestamps
+        event_matches = re.finditer(r'\[(\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4})\] "([A-Z]+) ([^ ]+)', 
+                                   content)
+        for match in event_matches:
+            timestamp, method, url = match.groups()
+            timestamp_obj = datetime.strptime(timestamp, '%d/%b/%Y:%H:%M:%S %z')
+            timestamp_str = timestamp_obj.strftime('%Y-%m-%d %H:%M:%S')
+            events.append({
+                "timestamp": timestamp_str,
+                "source": source_description,
+                "event_type": f"HTTP-{method}",
+                "details": f"{method} {url}"
+            })
+    
+    else:
+        # Generic log processing - look for timestamps
+        timestamps = extract_timestamps(content)
+        for ts in timestamps:
+            events.append({
+                "timestamp": ts,
+                "source": source_description,
+                "event_type": "Log",
+                "details": "Timestamp detected in log file"
+            })
+    
+    return events
+
+def extract_memory_events(content, source_description):
+    """Extract events from memory dumps"""
+    events = []
+    
+    # Look for process information with timestamps
+    proc_matches = re.finditer(r'PROCESS_NAME: (\S+) PID: (\d+)(?:.*?CREATION_TIME: (\S+ \S+))?', 
+                              content, re.DOTALL)
+    
+    for match in proc_matches:
+        proc_name, pid = match.groups()[0:2]
+        timestamp = match.groups()[2] if match.groups()[2] else datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        events.append({
+            "timestamp": timestamp,
+            "source": source_description,
+            "event_type": "Process",
+            "details": f"Process {proc_name} (PID: {pid})"
+        })
+    
+    # Look for network connections
+    net_matches = re.finditer(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+) [-><]+ (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', 
+                             content)
+    
+    for match in net_matches:
+        src_ip, src_port, dst_ip, dst_port = match.groups()
+        events.append({
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # Use current time if no timestamp
+            "source": source_description,
+            "event_type": "Network",
+            "details": f"Connection: {src_ip}:{src_port} -> {dst_ip}:{dst_port}"
+        })
+    
+    return events
 
 def detect_timeline_anomalies(timeline_df):
     """Detect anomalies in the event timeline"""

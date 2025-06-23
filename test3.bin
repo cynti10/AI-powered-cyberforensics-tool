@@ -1,0 +1,10 @@
+powershell.exe
+Invoke-Expression
+IEX
+DownloadString
+base64
+FromBase64String
+SGVsbG8gV29ybGQ=
+Software\Microsoft\Windows\CurrentVersion\Run
+Software\Microsoft\Windows\CurrentVersion\RunOnce
+SYSTEM\CurrentControlSet\Services

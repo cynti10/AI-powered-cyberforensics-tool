@@ -87,17 +87,14 @@ with tab1:
 
 with tab2:
     st.header("Log Analysis")
-    uploaded_log = st.file_uploader("Upload a log file for analysis", type=["log", "txt", "xml"], key="log_uploader")
+    uploaded_log = st.file_uploader("Upload a Windows Security log (CSV format preferred)", type=["csv", "log", "txt", "xml"], key="log_uploader")
     
     if uploaded_log is not None:
-        # Save the uploaded log temporarily
         temp_log_path = os.path.join("temp", uploaded_log.name)
         os.makedirs("temp", exist_ok=True)
-        
         with open(temp_log_path, "wb") as f:
             f.write(uploaded_log.getbuffer())
         
-        # Log type selection
         log_type = st.selectbox(
             "Select log type", 
             ["windows", "apache", "ssh", "generic"]
@@ -106,41 +103,49 @@ with tab2:
         if st.button("Analyze Log"):
             with st.spinner("Analyzing log file..."):
                 try:
-                    # Import log parser if not already imported
-                    from engine.log_parser import parse_log_events, detect_log_anomalies
-                    
-                    # Read log content
-                    with open(temp_log_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                    
-                    # Parse logs
-                    events = parse_log_events(content, log_type)
-                    
-                    # Detect anomalies
-                    anomalies = detect_log_anomalies(events)
-                    
-                    # Display results
-                    st.subheader("Log Analysis Results")
-                    
-                    # Show log statistics
-                    st.write("### Log Statistics")
-                    for key, value in events.items():
-                        st.write(f"**{key}:** {value}")
-                    
-                    # Show anomalies
-                    st.write("### Detected Anomalies")
-                    if anomalies:
-                        for anomaly in anomalies:
-                            st.error(f"- {anomaly}")
+                    if log_type == "windows":
+                        # Corrected: removed 'errors' argument
+                        df = pd.read_csv(temp_log_path, encoding="utf-8")
+                        st.write("Log file loaded. Showing first 5 rows:")
+                        st.dataframe(df.head())
+
+                        # Look for failed login attempts (Event ID 4625)
+                        if "EventID" in df.columns:
+                            failed_logins = df[df["EventID"] == 4625]
+                        else:
+                            # Try to find event id in another column
+                            failed_logins = df[df.apply(lambda row: "4625" in str(row).lower(), axis=1)]
+
+                        # Count failed attempts per user
+                        if not failed_logins.empty:
+                            if "Account Name" in failed_logins.columns:
+                                user_col = "Account Name"
+                            elif "TargetUserName" in failed_logins.columns:
+                                user_col = "TargetUserName"
+                            else:
+                                user_col = failed_logins.columns[0]  # fallback
+
+                            failed_logins[user_col] = failed_logins[user_col].astype(str).str.strip()
+                            failed_counts = failed_logins[user_col].value_counts()
+                            st.subheader("Failed Login Attempts per User")
+                            st.write(failed_counts)
+                            threshold = 1
+ 
+                            # st.write("DEBUG: Threshold =", threshold)
+                            st.write("DEBUG: Suspicious users (should be >= threshold):")
+                            st.write(failed_counts[failed_counts >= threshold])
+
+                            suspicious_users = failed_counts[failed_counts >= threshold]
+                            if not suspicious_users.empty:
+                                st.error("Suspicious activity detected! Users with many failed logins:")
+                                for user, count in suspicious_users.items():
+                                    st.write(f"- {user}: {count} failed attempts")
+                            else:
+                                st.success("No suspicious failed login activity detected.")
+                        else:
+                            st.info("No failed login attempts found in this log.")
                     else:
-                        st.success("No anomalies detected")
-                        
-                    # Show sample of raw log
-                    st.write("### Log Preview")
-                    lines = content.split('\n')
-                    preview = '\n'.join(lines[:10]) + "\n..."
-                    st.code(preview)
-                    
+                        st.info("Log analysis for this log type is not implemented yet.")
                 except Exception as e:
                     st.error(f"Error analyzing log: {e}")
 

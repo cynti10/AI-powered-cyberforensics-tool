@@ -302,7 +302,7 @@ with tab4:
                             
                             # Group by timeframe - use any column that definitely exists
                             column_to_count = 'event_type' if 'event_type' in timeline_df.columns else 'source'
-                            timeline_counts = timeline_df.resample('H', on='timestamp').count()[column_to_count]
+                            timeline_counts = timeline_df.resample('h', on='timestamp').count()[column_to_count]
                             
                             # Plot
                             fig, ax = plt.subplots(figsize=(10, 5))

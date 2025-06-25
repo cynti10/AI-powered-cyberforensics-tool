@@ -121,13 +121,25 @@ def extract_memory_events(content, source_description):
     """Extract events from memory dumps"""
     events = []
     
-    # Look for process information with timestamps
-    proc_matches = re.finditer(r'PROCESS_NAME: (\S+) PID: (\d+)(?:.*?CREATION_TIME: (\S+ \S+))?', 
-                              content, re.DOTALL)
+    # Try to extract actual timestamps from content first
+    creation_time_match = re.search(r'CREATION_TIME: (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})', content)
+    time_match = re.search(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})', content)
     
-    for match in proc_matches:
-        proc_name, pid = match.groups()[0:2]
-        timestamp = match.groups()[2] if match.groups()[2] else datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    if creation_time_match:
+        base_time = datetime.strptime(creation_time_match.group(1), '%Y-%m-%d %H:%M:%S')
+    elif time_match:
+        base_time = datetime.strptime(time_match.group(1), '%Y-%m-%d %H:%M:%S')
+    else:
+        # Use current time minus some offset to make it recent but not "now"
+        base_time = datetime.now() - pd.Timedelta(hours=1)
+    
+    # Look for process information
+    proc_matches = re.finditer(r'PROCESS_NAME: (\S+) PID: (\d+)', content)
+    
+    for i, match in enumerate(proc_matches):
+        proc_name, pid = match.groups()
+        # Space processes dynamically based on their position
+        timestamp = (base_time + pd.Timedelta(minutes=i)).strftime('%Y-%m-%d %H:%M:%S')
         
         events.append({
             "timestamp": timestamp,
@@ -137,13 +149,17 @@ def extract_memory_events(content, source_description):
         })
     
     # Look for network connections
-    net_matches = re.finditer(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+) [-><]+ (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', 
-                             content)
+    net_matches = re.finditer(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+) [-><]+ (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', content)
     
-    for match in net_matches:
+    process_count = len(list(re.finditer(r'PROCESS_NAME: (\S+) PID: (\d+)', content)))
+    
+    for i, match in enumerate(net_matches):
         src_ip, src_port, dst_ip, dst_port = match.groups()
+        # Network events come after all processes
+        timestamp = (base_time + pd.Timedelta(minutes=process_count + i)).strftime('%Y-%m-%d %H:%M:%S')
+        
         events.append({
-            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # Use current time if no timestamp
+            "timestamp": timestamp,
             "source": source_description,
             "event_type": "Network",
             "details": f"Connection: {src_ip}:{src_port} -> {dst_ip}:{dst_port}"
@@ -177,8 +193,22 @@ def detect_timeline_anomalies(timeline_df):
             "type": "time_gap",
             "timestamp": row["timestamp"],
             "gap_duration": str(row["time_diff"]),
-            "context": row["context"]
+            "details": row.get("details", "Time gap detected")  # Use existing field, not 'context'
         })
+    
+    # Check for suspicious processes
+    if 'details' in timeline_df.columns:
+        suspicious_processes = timeline_df[
+            (timeline_df['event_type'] == 'Process') & 
+            (timeline_df['details'].str.contains('powershell|mimikatz|netcat', case=False, na=False))
+        ]
+        
+        for _, row in suspicious_processes.iterrows():
+            anomalies.append({
+                "type": "suspicious_process",
+                "timestamp": row["timestamp"],
+                "details": row["details"]
+            })
     
     return anomalies
 
